@@ -1,0 +1,59 @@
+# Credit Card Fraud Detection – Weekly Plan
+
+## Week 1 – Chuẩn bị dữ liệu & setup môi trường
+
+### Phạm Tú (Data & Preprocessing)
+- Tải dataset từ Kaggle (`creditcard.csv`) lên Colab.
+- **Thực hiện EDA**:
+  - Kiểm tra missing values, outliers.
+  - Xem phân phối các feature (`V1–V28`, `Amount`).
+  - Kiểm tra tỉ lệ Fraud / Normal.
+- **Xử lý dữ liệu cơ bản**:
+  - Scaling (StandardScaler).
+  - Train / Validation / Test split.
+  - Lập kế hoạch xử lý imbalance (SMOTE hoặc `class_weight`).
+- Lưu dữ liệu đã xử lý vào Colab hoặc Google Drive.
+
+### Minh Phú (Modeling setup)
+- Cài đặt môi trường Colab: `numpy`, `pandas`, `sklearn`, `xgboost`, `imbalanced-learn`, `matplotlib`.
+- Tạo file `models.py` và thử Random Forest baseline.
+- Chạy thử với dữ liệu sample (hoặc dummy data) để kiểm tra pipeline.
+
+---
+
+## Week 2 – Train model & đánh giá ban đầu
+
+### Phạm Tú
+- Hoàn thiện pipeline tiền xử lý dữ liệu:
+  - Scaling, SMOTE, train/val/test split.
+  - Đảm bảo dữ liệu sạch và chuẩn cho tất cả models.
+- Viết module `evaluate.py`:
+  - Metrics: Precision, Recall, F1, AUC.
+  - Confusion matrix, ROC curve.
+- Chạy thử một vài mô hình nhỏ để kiểm tra pipeline.
+
+### Minh Phú
+- Train các ensemble models:
+  - Random Forest, AdaBoost, XGBoost.
+- Lưu model đã train (pickle).
+- Dự đoán trên validation set và gọi hàm evaluate từ Phạm Tú.
+- Tạo bảng metrics cho từng model (Precision, Recall, F1, AUC).
+- Vẽ biểu đồ bar chart so sánh hiệu năng.
+
+---
+
+## Week 3 – Ứng dụng, báo cáo & hoàn thiện project
+
+### Phạm Tú
+- Chuẩn bị notebook `03 – Evaluation & Comparison`:
+  - Kết hợp kết quả từ tất cả models.
+  - Xuất bảng metrics `metrics.csv`.
+  - Lưu confusion matrix và ROC curves vào thư mục `results/`.
+- Review toàn bộ pipeline và dữ liệu.
+
+### Minh Phú
+- Xây dựng mini application `fraud_detection_app.py`:
+  - Nhập dữ liệu giao dịch mới → dự đoán Fraud / Normal.
+- Tạo biểu đồ so sánh cuối cùng (`comparison.png`).
+- Hỗ trợ Phạm Tú kiểm tra báo cáo và notebook hoàn thiện.
+- Chuẩn bị demo Colab chạy được trực tiếp.
