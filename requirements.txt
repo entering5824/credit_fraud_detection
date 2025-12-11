@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 numpy
 pandas
 scikit-learn
@@ -8,3 +9,17 @@ imbalanced-learn
 xgboost
 scipy
 
+=======
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+joblib
+imbalanced-learn
+xgboost
+scipy
+
+
+
+>>>>>>> 7f1a985 (Update notebooks and models)
