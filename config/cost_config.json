@@ -1,0 +1,6 @@
+{
+  "cost_fn": 1000,
+  "cost_fp": 10,
+  "optimal_threshold": 0.5,
+  "description": "cost_fn = cost of missing fraud (FN), cost_fp = cost of false alert (FP). optimal_threshold minimizes expected cost on validation set."
+}

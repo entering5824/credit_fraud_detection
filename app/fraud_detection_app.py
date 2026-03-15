@@ -24,6 +24,7 @@ sys.path.insert(0, str(project_root))
 # Import các module cần thiết từ thư mục src/
 from src.data_preprocessing import scale_features
 from src.models import load_model
+from src.cost_sensitive import load_cost_config
 
 
 def load_scaler_and_models():
@@ -69,7 +70,12 @@ def load_scaler_and_models():
             "Không tìm thấy model nào. Vui lòng chạy notebook 02 để train models."
         )
     
-    return scaler, models
+    # Cost-sensitive threshold (tối ưu theo cost FN/FP)
+    cost_config = load_cost_config()
+    threshold = cost_config.get("optimal_threshold", 0.5)
+    print(f"✅ Ngưỡng cost-sensitive: {threshold:.4f}")
+    
+    return scaler, models, threshold
 
 
 def get_transaction_input():
@@ -125,7 +131,7 @@ def get_transaction_input():
     return transaction
 
 
-def predict_transaction(scaler, models, transaction_data):
+def predict_transaction(scaler, models, threshold, transaction_data):
     """
     Hàm này dự đoán xem giao dịch có phải gian lận hay không
     
@@ -156,19 +162,17 @@ def predict_transaction(scaler, models, transaction_data):
     # Nếu không, model sẽ cho kết quả sai
     X_scaled, _ = scale_features(df, feature_cols=feature_cols, scaler=scaler, fit=False)
     
-    # Dự đoán bằng từng model
+    # Dự đoán bằng từng model (dùng threshold từ config cho cost-sensitive)
     predictions = {}
     probabilities = {}
-    
+
     for model_name, model in models.items():
-        # Dự đoán nhãn (0 = Normal, 1 = Fraud)
-        pred = model.predict(X_scaled)[0]
+        # Xác suất gian lận
+        proba = model.predict_proba(X_scaled)[0][1]
+        probabilities[model_name] = proba
+        # Nhãn theo ngưỡng tối ưu (cost-sensitive), không dùng 0.5 cố định
+        pred = 1 if proba >= threshold else 0
         predictions[model_name] = pred
-        
-        # Dự đoán xác suất (probability)
-        # proba[0] = xác suất Normal, proba[1] = xác suất Fraud
-        proba = model.predict_proba(X_scaled)[0]
-        probabilities[model_name] = proba[1]  # Lấy xác suất Fraud
     
     return predictions, probabilities
 
@@ -250,16 +254,16 @@ def main():
     print("  - XGBoost")
     
     try:
-        # Bước 1: Tải scaler và models
+        # Bước 1: Tải scaler, models và threshold
         print("\n🔄 Đang tải models...")
-        scaler, models = load_scaler_and_models()
+        scaler, models, threshold = load_scaler_and_models()
         
         # Bước 2: Nhập thông tin giao dịch
         transaction_data = get_transaction_input()
         
         # Bước 3: Dự đoán
         print("\n🔄 Đang dự đoán...")
-        predictions, probabilities = predict_transaction(scaler, models, transaction_data)
+        predictions, probabilities = predict_transaction(scaler, models, threshold, transaction_data)
         
         # Bước 4: Hiển thị kết quả
         display_results(transaction_data, predictions, probabilities)
@@ -269,7 +273,7 @@ def main():
             continue_choice = input("\n\nBạn có muốn kiểm tra giao dịch khác? (y/n): ").strip().lower()
             if continue_choice in ['y', 'yes', 'có', 'c']:
                 transaction_data = get_transaction_input()
-                predictions, probabilities = predict_transaction(scaler, models, transaction_data)
+                predictions, probabilities = predict_transaction(scaler, models, threshold, transaction_data)
                 display_results(transaction_data, predictions, probabilities)
             elif continue_choice in ['n', 'no', 'không', 'k']:
                 print("\n👋 Cảm ơn bạn đã sử dụng ứng dụng!")
