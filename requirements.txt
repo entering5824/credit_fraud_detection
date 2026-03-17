@@ -12,3 +12,5 @@ fastapi
 uvicorn
 kafka-python
 shap
+tqdm
+pyarrow

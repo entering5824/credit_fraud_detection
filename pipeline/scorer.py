@@ -1,48 +1,22 @@
 """
-Load model + scaler + threshold and score a transaction (feature dict).
+Legacy shim (kept for backward compatibility).
+
+New canonical implementation lives in `src.models.inference`.
 """
 
-import sys
-from pathlib import Path
-import pickle
-import numpy as np
-
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
-
-FEATURE_COLS = [f"V{i}" for i in range(1, 29)] + ["Amount"]
-
-_model = None
-_scaler = None
-_threshold = 0.5
-
-
-def _load():
-    global _model, _scaler, _threshold
-    if _model is not None:
-        return
-    from src.cost_sensitive import load_cost_config
-    with open(ROOT / "models" / "xgboost.pkl", "rb") as f:
-        _model = pickle.load(f)
-    with open(ROOT / "models" / "scaler.pkl", "rb") as f:
-        _scaler = pickle.load(f)
-    cfg = load_cost_config()
-    _threshold = cfg.get("optimal_threshold", 0.5)
+from src.models.inference import score as _score_new
 
 
 def score(features: dict) -> dict:
     """
-    Score one transaction. features: dict with V1..V28, Amount.
-    Returns: fraud_score (prob), alert (bool), threshold_used.
+    Backward compatible wrapper.
+
+    Historical response used `fraud_score`; the new API uses `fraud_probability`.
     """
-    _load()
-    row = [float(features.get(k, 0)) for k in FEATURE_COLS]
-    X = np.array([row])
-    X_scaled = _scaler.transform(X)
-    proba = _model.predict_proba(X_scaled)[0][1]
-    alert = proba >= _threshold
+    res = _score_new(features)
     return {
-        "fraud_score": float(proba),
-        "alert": bool(alert),
-        "threshold_used": float(_threshold),
+        "fraud_score": res["fraud_probability"],
+        "fraud_probability": res["fraud_probability"],
+        "alert": res["alert"],
+        "threshold_used": res["threshold_used"],
     }

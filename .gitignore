@@ -36,17 +36,14 @@ data/*.pkl
 data/*.h5
 data/*.hdf5
 
-# Model files (too large for git)
-models/*.pkl
-models/*.h5
-models/*.joblib
-models/*.model
+# Model artifacts (entire tree - large binaries)
+models/
 
-# Results (optional - uncomment if you don't want to track results)
-# results/
-# *.png
-# *.jpg
-# *.pdf
+# Experiment run artifacts (optional - keep plots for README)
+results/experiments/
+results/batch_scored*.csv
+results/monitoring/
+results/*.jsonl
 
 # IDE
 .vscode/

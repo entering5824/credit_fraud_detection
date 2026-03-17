@@ -1,0 +1,53 @@
+{
+  "parquets": [
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_credit_card_fraud_10k.parquet",
+      "dataset_name": "credit_card_fraud_10k",
+      "rows": 5000,
+      "n_pos": 78,
+      "n_neg": 4922
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_creditcard_2023.parquet",
+      "dataset_name": "creditcard_2023",
+      "rows": 5000,
+      "n_pos": 3,
+      "n_neg": 4997
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_creditcard.parquet",
+      "dataset_name": "creditcard",
+      "rows": 5000,
+      "n_pos": 3,
+      "n_neg": 4997
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_onlinefraud.parquet",
+      "dataset_name": "onlinefraud",
+      "rows": 5000,
+      "n_pos": 40,
+      "n_neg": 4960
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_PS_log.parquet",
+      "dataset_name": "PS_log",
+      "rows": 5000,
+      "n_pos": 40,
+      "n_neg": 4960
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_Synthetic_Financial_datasets_log.parquet",
+      "dataset_name": "Synthetic_Financial_datasets_log",
+      "rows": 5000,
+      "n_pos": 40,
+      "n_neg": 4960
+    },
+    {
+      "path": "D:\\Code\\credit_fraud_detection\\data\\processed\\features_transactions.parquet",
+      "dataset_name": "transactions",
+      "rows": 5000,
+      "n_pos": 104,
+      "n_neg": 4896
+    }
+  ]
+}
