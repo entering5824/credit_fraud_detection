@@ -228,6 +228,145 @@ python -m src.models.batch_scoring --input data/creditcard.csv --output results/
 
 ---
 
+## AI Fraud Investigation Agent
+
+The project includes a full **AI Fraud Investigation Agent** that goes beyond simple scoring. It orchestrates multiple tools through an Observe → Score → Plan → Reason → Report loop.
+
+### Architecture
+
+```
+Client Request
+    │
+    ▼
+Agent API  (POST /agent/analyze | /agent/investigate | /agent/explain)
+    │
+    ▼
+AgentOrchestrator  (stateful InvestigationState)
+    ├── fraud_scoring_tool  →  ML model (fraud probability + risk level)
+    ├── feature_explanation_tool  →  SHAP (cached TreeExplainer)
+    ├── behavior_analysis_tool   →  spending spike, velocity, merchant novelty
+    └── drift_monitoring_tool    →  PSI per feature vs. training baseline
+    │
+    ▼
+RiskReasoner  (pattern classification, confidence score, ranked signals)
+    │
+    ▼
+Investigation Report  (JSON, stored in InvestigationSession memory)
+```
+
+### Agent API Endpoints
+
+#### Fast score — low latency, no SHAP
+
+```bash
+curl -X POST http://localhost:8000/agent/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transaction_id": "tx_0001",
+    "features": { "Amount": 120.5, "V1": 0.12, "V2": -0.34 }
+  }'
+```
+
+#### Full investigation — SHAP + behavior analysis
+
+```bash
+curl -X POST http://localhost:8000/agent/investigate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "transaction_id": "tx_0001",
+    "features": { "Amount": 5000.0, "V1": -3.2, "V2": 1.7 },
+    "include_explanation": true,
+    "include_behavior": true
+  }'
+```
+
+Example response fields:
+
+```json
+{
+  "fraud_probability": 0.92,
+  "risk_score": 92.0,
+  "risk_level": "critical",
+  "fraud_pattern": "account_takeover",
+  "confidence_score": 0.87,
+  "recommended_action": "flag for manual review",
+  "analyst_summary": "Critical risk (0.92). Pattern: account_takeover...",
+  "behavioral_anomalies": ["spending spike detected", "new merchant interaction"],
+  "partial_report": false,
+  "session_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "_meta": {
+    "tool_calls": [...],
+    "failed_tools": [],
+    "feature_vector_hash_full": "a3b4c5d6..."
+  }
+}
+```
+
+#### Retrieve investigation session
+
+```bash
+curl http://localhost:8000/agent/session/<session_id>
+```
+
+### Running Tests
+
+```bash
+# Unit tests only (no model files needed)
+pytest tests/unit -v
+
+# Integration tests (patches ML model — no model files needed)
+pytest tests/integration -v
+
+# All tests
+pytest tests/ -v
+```
+
+### Local Development (Docker)
+
+```bash
+# Start API + Redis + Jaeger + Prometheus + Grafana
+docker compose up --build
+
+# API:        http://localhost:8000
+# OpenAPI UI: http://localhost:8000/docs
+# Metrics:    http://localhost:8000/metrics
+# Jaeger UI:  http://localhost:16686
+# Grafana:    http://localhost:3000   (admin / admin)
+```
+
+Place your trained `models/xgboost.pkl` and `models/scaler.pkl` in the `models/` directory before starting.
+
+### Load Testing (k6)
+
+```bash
+# Install k6: https://k6.io/docs/get-started/installation/
+k6 run tests/load/agent_load_test.js
+
+# Custom concurrency and duration
+k6 run --vus 20 --duration 60s tests/load/agent_load_test.js
+
+# Against a remote host
+k6 run -e BASE_URL=http://your-server:8000 tests/load/agent_load_test.js
+```
+
+| Endpoint | SLO p95 | Default VUs |
+|---|---|---|
+| `/agent/analyze` | ≤ 200 ms | 10 |
+| `/agent/investigate` | ≤ 1 000 ms | 5 |
+
+### Observability
+
+| Signal | Implementation |
+|---|---|
+| Prometheus metrics | `GET /metrics` — counters/histograms per tool and endpoint |
+| Distributed traces | OpenTelemetry → Jaeger (set `OTEL_EXPORTER_OTLP_ENDPOINT`) |
+| Agent trace log | JSONL at `results/monitoring/agent_trace.jsonl` |
+| SHAP warm-start | `warm_start_explainer()` in `src/explainability/shap_explainer.py` |
+
+See [RUNBOOK.md](RUNBOOK.md) for alert rules, SLOs, and incident response playbooks.
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).

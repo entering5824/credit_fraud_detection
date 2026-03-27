@@ -1,0 +1,100 @@
+version: "3.9"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fraud Detection AI Agent – local development stack
+#
+# Services:
+#   api      – FastAPI app (fraud scoring + agent endpoints)
+#   redis    – TransactionStore backend (swap InMemory → Redis in production)
+#   jaeger   – OpenTelemetry trace visualisation (http://localhost:16686)
+#   prometheus – Metrics scraper
+#   grafana  – Metrics dashboard (http://localhost:3000, admin/admin)
+#
+# Usage:
+#   docker compose up --build
+#   curl http://localhost:8000/health
+#   curl http://localhost:8000/docs   # OpenAPI UI
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Fraud Agent API ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount trained model files into the container
+      - ./models:/app/models:ro
+      # Persist monitoring logs
+      - ./results:/app/results
+      # Mount raw data for drift baseline (optional)
+      - ./data:/app/data:ro
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - FRAUD_AGENT_LOG_LEVEL=info
+    depends_on:
+      - redis
+      - jaeger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Redis (future TransactionStore backend) ────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Jaeger (distributed tracing) ──────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+
+  # ── Prometheus ─────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=7d"
+    restart: unless-stopped
+
+  # ── Grafana ────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.2.3
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  grafana_data:

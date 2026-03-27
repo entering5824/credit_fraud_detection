@@ -12,10 +12,23 @@ from src.schemas.feature_schema import validate_feature_dict
 from src.core.thresholds import load_threshold_config
 from src.monitoring.performance_monitoring import PerfRecord, append_perf_record
 from src.core.paths import get_paths
+from src.api.agent_routes import router as agent_router
+from src.api.case_routes import router as case_router
+from src.monitoring.metrics import metrics_router, record_request
+from src.monitoring.tracing import setup_tracing, instrument_fastapi
 import time
 
 
 app = FastAPI(title="Fraud Scoring API", version="2.0.0")
+
+# Initialise observability (no-ops if packages absent)
+setup_tracing(service_name="fraud-agent-api")
+instrument_fastapi(app)
+
+app.include_router(agent_router)
+app.include_router(case_router)
+if metrics_router is not None:
+    app.include_router(metrics_router)
 
 
 class PredictRequest(BaseModel):
